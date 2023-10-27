@@ -1,48 +1,40 @@
 import Clock from './deps/clock.js';
+import { View } from './view.js';
 
-const fileUpload = document.getElementById('fileUpload')
-const btnUploadVideo = document.getElementById('btnUploadVideos')
-const fileSize = document.getElementById('fileSize')
-const fileInfo = document.getElementById('fileInfo')
-const txtfileName = document.getElementById('fileName')
-const fileUploadWrapper = document.getElementById('fileUploadWrapper')
-const elapsed = document.getElementById('elapsed')
+const view = new View();
+const clock = new Clock();
 
-
-fileUpload.addEventListener('change', onChange)
-btnUploadVideo.addEventListener('click', () => {
-    // trigger file input
-    fileUpload.click()
-})
-let took = ''
-
-function parseBytesIntoMBAndGB(bytes) {
-    const mb = bytes / (1024 * 1024)
-    // if mb is greater than 1024, then convert to GB
-    if (mb > 1024) {
-        // rount to 2 decimal places
-        return `${Math.round(mb / 1024)}GB`
-    }
-    return `${Math.round(mb)}MB`
-}
-const clock = new Clock()
-
-function onChange(e) {
-    const file = e.target.files[0]
-    const { name, size } = file
-    txtfileName.innerText = name
-    fileSize.innerText = parseBytesIntoMBAndGB(size)
-
-    fileInfo.classList.remove('hide')
-    fileUploadWrapper.classList.add('hide')
-
+view.configFileChange((file) => {
+    let took;
     clock.start((time) => {
         took = time;
-        elapsed.innerText = `Process started ${time}`
+        view.updateElapsedTime(took)
     })
 
     setTimeout(() => {
         clock.stop()
-        elapsed.innerText = `Process took ${took.replace('ago', '')}`
+        view.updateElapsedTime(took, { finish: true })
     }, 5000)
+})
+    
+async function mockFetch() {
+    const filepath = '/videos/frag_bunny.mp4';
+    const response = await fetch(filepath);
+    // await response.blob()
+    // const lenght = response.headers.get('content-lenght')
+    // debugger;
+    const file = new File([await response.blob()], filepath, { type:'video/mp4', lastModified: Date.now() });
+
+    const evt = new Event('change');
+    Reflect.defineProperty(
+        evt,
+        'target',
+        {value: { files: [file] }}
+    ) 
+    
+    document.getElementById('fileUpload').dispatchEvent(evt);
+
 }
+
+mockFetch()
+
